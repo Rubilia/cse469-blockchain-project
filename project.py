@@ -10,6 +10,7 @@ from Crypto.Util.Padding import pad, unpad
 # Hardcode values 
 AES_KEY: bytes = 'AES-KEY'
 
+
 class BlockStatus(Enum):
     INIT = 'INIT'
     CHECKED_IN = 'CHECKED_IN'
@@ -128,7 +129,7 @@ class BlockEntry:
         return encrypted_uuid.hex()
 
 
-class Chain:
-    def __init__(self, file_path: str = DEFAULT_FILE_PATH):
+class BlockChain:
+    def __init__(self, file_path: str):
         self.file_path = file_path
         self.entries: List[BlockEntry] = []
