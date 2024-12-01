@@ -8,7 +8,7 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 
 # Hardcode values 
-AES_KEY: bytes = 'AES-KEY'
+AES_KEY: bytes = b"R0chLi4uLi4uLi4u"
 
 
 class BlockStatus(Enum):
