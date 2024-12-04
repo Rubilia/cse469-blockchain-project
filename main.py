@@ -35,8 +35,8 @@ def main():
                 print("Error: Wrong arguments for 'checkout' command.")
                 exit(2)
         case "checkin":
-            if args.evidence_id and args.password:
-                blockchain.checkin_item(args.evidence_id, args.password)
+            if args.evidence_id and len(args.evidence_id) == 1 and args.password:
+                blockchain.checkin_item(args.evidence_id[0], args.password)
             else:
                 print("Error: Wrong arguments for 'checkin' command.")
         case "verify":
