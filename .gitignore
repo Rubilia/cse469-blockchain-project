@@ -1,0 +1,4 @@
+.venv/*
+blockchain.dat
+.vscode/*
+*/__pycache__/*

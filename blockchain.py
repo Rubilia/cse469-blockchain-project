@@ -1,14 +1,24 @@
-import struct
+import os
 import uuid
 import maya
+import struct
+import hashlib
 
 from enum import Enum
 from typing import Optional, List
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 
+
 # Hardcode values 
 AES_KEY: bytes = b"R0chLi4uLi4uLi4u"
+
+# Hard coded passwords
+BCHOC_PASSWORD_POLICE = 'P80P'
+BCHOC_PASSWORD_LAWYER = 'L76L'
+BCHOC_PASSWORD_ANALYST = 'A65A'
+BCHOC_PASSWORD_EXECUTIVE = 'E69E'
+BCHOC_PASSWORD_CREATOR = 'C67C'
 
 
 class BlockStatus(Enum):
@@ -129,7 +139,79 @@ class BlockEntry:
         return encrypted_uuid.hex()
 
 
+def blockchain_loader(func):
+    def wrapper(self, *args, **kwargs):
+        self.load_blockchain()
+        return func(self, *args, **kwargs)
+    return wrapper
+
+
 class BlockChain:
     def __init__(self, file_path: str):
         self.file_path = file_path
         self.entries: List[BlockEntry] = []
+
+    def init_blockchain(self):
+        if not os.path.exists(self.file_path):
+            self.entries = [BlockEntry()]
+            self.save_blockchain()
+            return print('Blockchain file not found. Created INITIAL block.')
+        
+        self.load_blockchain()
+        print('Blockchain file found with INITIAL block.')
+
+    
+    def save_blockchain(self):
+        with open(self.file_path, 'wb') as f:
+            for b in self.entries:
+                f.write(b.serialize())
+    
+    def load_blockchain(self):
+        with open(self.file_path, 'rb') as f:
+            for b in f:
+                self.entries.append(BlockEntry.deserialize(b))
+
+    @blockchain_loader
+    def add_entry(self, case_id: str, evidence_ids: List[str], author: str, password: str):
+        if password != BCHOC_PASSWORD_CREATOR:
+            print('Invalid password')
+            exit(2)
+
+        # Detect duplicates
+        seen_item_ids = set()
+        for b in self.entries:
+            if b.evidence_id in evidence_ids and b.evidence_id in seen_item_ids:
+                print('Duplicate evidence IDs!')
+                exit(3)
+            seen_item_ids.add(b.evidence_id)
+
+        # Duplicates in item_ids
+        for i in range(len(evidence_ids)):
+            for j in range(i + 1, len(evidence_ids)):
+                if evidence_ids[i] == evidence_ids[j]:
+                    print('Duplicate evidence ids!')
+                    exit(4)
+
+        # Case id must be a uuid
+        try:
+            case_uuid = uuid.UUID(case_id)
+        except ValueError:
+            print("case_id must be a valid UUID!")
+            exit(5)
+
+        # Add all blocks
+        for evidence_id in evidence_ids:
+            entry = BlockEntry()
+            entry.hash_value = self.entries[-1].compute_hash()
+            entry.timestamp = maya.now()
+            entry.case_id = case_uuid
+            entry.evidence_id = evidence_id
+            entry.status = BlockStatus.CHECKED_IN
+            entry.author = author
+            entry.payload_size = 0
+            entry.payload = ""
+            self.entries.append(entry)
+            print(f'Added item: {evidence_id}\nStatus: CHECKEDIN\nTime of action: {entry.timestamp.iso8601()}')
+
+        # Save blockchain to the file
+        self.save_blockchain()
