@@ -371,3 +371,46 @@ class BlockChain:
 
         self.save_blockchain()
 
+    @blockchain_loader
+    def verify_chain(self) -> None:
+        if not self.entries:
+            print("Blockchain is empty.")
+            exit(1)
+        
+        seen_hashes = set()
+        removed_evidence_ids = set()
+        
+        # Initialize with the first block
+        previous_block = self.entries[0]
+        seen_hashes.add(previous_block.hash_value)
+        
+        # Check if the first block removes any evidence
+        if previous_block.status == BlockStatus.DESTROYED or previous_block.status == BlockStatus.DISPOSED or previous_block.status == BlockStatus.RELEASED:
+            removed_evidence_ids.add(previous_block.evidence_id)
+        
+        # Go through blockchain and check each block from 2nd
+        for current_block in self.entries[1:]:
+            # Don't allow check in/out after removal
+            if (current_block.status == BlockStatus.CHECKEDIN or current_block.status == BlockStatus.CHECKEDOUT) and current_block.evidence_id in removed_evidence_ids:
+                print(f"Transactions in blockchain: {len(self.entries)}\nState of blockchain: ERROR\nBad Block: {current_block.case_id}\nItem checked in or out after removal from chain.")
+                exit(1)
+            
+            if current_block.status == BlockStatus.DESTROYED or current_block.status == BlockStatus.DISPOSED or current_block.status == BlockStatus.RELEASED:
+                removed_evidence_ids.add(current_block.evidence_id)
+            
+            # Detect duplicate hashes
+            if current_block.hash_value in seen_hashes:
+                print(f"Transactions in blockchain: {len(self.entries)}\nState of blockchain: ERROR\nBad Block: {current_block.case_id}\nParent Block: {previous_block.case_id}\nTwo blocks were found with the same parent")
+                exit(1)
+            
+            # Make sure current blocks hashes match previous block
+            expected_hash = previous_block.compute_hash()
+            if current_block.hash_value != expected_hash:
+                print(f"Transactions in blockchain: {len(self.entries)}\nState of blockchain: ERROR\nBad Block: {current_block.case_id}\nBlock contents do not match block checksum.")
+                exit(1)
+            
+            seen_hashes.add(current_block.hash_value)
+            previous_block = current_block
+        
+        # Report correct blockchain
+        print(f"Transactions in blockchain: {len(self.entries)}\nState of blockchain: CLEAN")

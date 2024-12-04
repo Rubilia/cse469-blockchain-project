@@ -45,8 +45,7 @@ def main():
             else:
                 print("Error: Wrong arguments for 'remove' command.")
         case "verify":
-            valid, message = blockchain.verify_chain()
-            print(message)
+            blockchain.verify_chain()
         case "show":
             # Implement show logic here
             pass
