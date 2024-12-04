@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import os
 import argparse
 
@@ -19,7 +21,7 @@ def main():
 
     match args.command:
         case"init":
-            blockchain.init_blockchain()
+            blockchain.init_blockchain(verbose=True)
         case "add":
             if args.case_id and args.evidence_id and args.author and args.password:
                 blockchain.add_entry(args.case_id, args.evidence_id, args.author, args.password)

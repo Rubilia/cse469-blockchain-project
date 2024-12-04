@@ -11,7 +11,7 @@ from Crypto.Util.Padding import pad, unpad
 
 
 # Hardcode values 
-AES_KEY: bytes = b"R0chLi4uLi4uLi4u"
+AES_KEY: bytes = b"R0chLi4uLi4uLi4="
 
 # Hard coded passwords
 BCHOC_PASSWORD_POLICE = 'P80P'
@@ -22,9 +22,9 @@ BCHOC_PASSWORD_CREATOR = 'C67C'
 
 
 class BlockStatus(Enum):
-    INIT = 'INIT'
-    CHECKED_IN = 'CHECKED_IN'
-    CHECKED_OUT = 'CHECKED_OUT'
+    INITIAL = 'INITIAL'
+    CHECKEDIN = 'CHECKEDIN'
+    CHECKEDOUT = 'CHECKEDOUT'
     DISPOSED = 'DISPOSED'
     DESTROYED = 'DESTROYED'
     RELEASED = 'RELEASED'
@@ -53,7 +53,7 @@ class BlockEntry:
         self.timestamp = None
         self.case_id = None
         self.evidence_id = 0
-        self.status = BlockStatus.INIT
+        self.status = BlockStatus.INITIAL
         self.author = None
         self.owner = None
         self.payload_size = 14
@@ -102,7 +102,7 @@ class BlockEntry:
             self.hash_value,
             self.timestamp.epoch if self.timestamp else 0.0,
             self._encrypt(self.case_id.bytes, pad=False).hex().encode() if self.case_id else b'0' * 32,
-            self._encrypt(self.evidence_id.to_bytes(16, 'big'), pad=False).hex().encode() if self.evidence_id else b'0' * 32,
+            self._encrypt(self.evidence_id.to_bytes(16, 'big')).hex().encode() if self.evidence_id else b'0' * 32,
             self.status.name.encode().ljust(12, b'\x00'),
             self.author.encode().ljust(12, b'\x00') if self.author else b'\x00' * 12,
             self.owner.name.encode().ljust(12, b'\x00') if self.owner else b'\x00' * 12,
@@ -141,7 +141,8 @@ class BlockEntry:
 
 def blockchain_loader(func):
     def wrapper(self, *args, **kwargs):
-        self.load_blockchain()
+        self.entries = []
+        self.init_blockchain()
         return func(self, *args, **kwargs)
     return wrapper
 
@@ -151,53 +152,60 @@ class BlockChain:
         self.file_path = file_path
         self.entries: List[BlockEntry] = []
 
-    def init_blockchain(self):
+    def init_blockchain(self, verbose=False):
         if not os.path.exists(self.file_path):
             self.entries = [BlockEntry()]
             self.save_blockchain()
-            return print('Blockchain file not found. Created INITIAL block.')
+            if verbose:
+                print('Blockchain file not found. Created INITIAL block.')
+            return
         
         self.load_blockchain()
-        print('Blockchain file found with INITIAL block.')
+        if verbose:
+            print('Blockchain file found with INITIAL block.')
 
     
     def save_blockchain(self):
+        if os.path.exists(self.file_path):
+            os.remove(self.file_path)
         with open(self.file_path, 'wb') as f:
             for b in self.entries:
                 f.write(b.serialize())
     
     def load_blockchain(self):
         with open(self.file_path, 'rb') as f:
-            for b in f:
-                self.entries.append(BlockEntry.deserialize(b))
+            blockchain = f.read()
+        self.entries = []
+        while blockchain:
+            b = BlockEntry.deserialize(blockchain)
+            self.entries.append(b)
+            blockchain = blockchain[len(b):]
 
     @blockchain_loader
     def add_entry(self, case_id: str, evidence_ids: List[str], author: str, password: str):
         if password != BCHOC_PASSWORD_CREATOR:
             print('Invalid password')
-            exit(2)
+            exit(1)
 
         # Detect duplicates
         seen_item_ids = set()
         for b in self.entries:
             if b.evidence_id in evidence_ids and b.evidence_id in seen_item_ids:
                 print('Duplicate evidence IDs!')
-                exit(3)
+                exit(1)
             seen_item_ids.add(b.evidence_id)
 
-        # Duplicates in item_ids
-        for i in range(len(evidence_ids)):
-            for j in range(i + 1, len(evidence_ids)):
-                if evidence_ids[i] == evidence_ids[j]:
-                    print('Duplicate evidence ids!')
-                    exit(4)
+        # Duplicate evidence_ids
+        if len(set(evidence_ids).intersection(set(b.evidence_id for b in self.entries))) > 0:
+            print('Duplicate evidence ids!')
+            exit(1)
 
         # Case id must be a uuid
         try:
             case_uuid = uuid.UUID(case_id)
         except ValueError:
             print("case_id must be a valid UUID!")
-            exit(5)
+            exit(1)
 
         # Add all blocks
         for evidence_id in evidence_ids:
@@ -206,7 +214,7 @@ class BlockChain:
             entry.timestamp = maya.now()
             entry.case_id = case_uuid
             entry.evidence_id = evidence_id
-            entry.status = BlockStatus.CHECKED_IN
+            entry.status = BlockStatus.CHECKEDIN
             entry.author = author
             entry.payload_size = 0
             entry.payload = ""
