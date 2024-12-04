@@ -105,7 +105,7 @@ class BlockEntry:
             self._encrypt(self.evidence_id.to_bytes(16, 'big')).hex().encode() if self.evidence_id else b'0' * 32,
             self.status.name.encode().ljust(12, b'\x00'),
             self.author.encode().ljust(12, b'\x00') if self.author else b'\x00' * 12,
-            self.owner.name.encode().ljust(12, b'\x00') if self.owner else b'\x00' * 12,
+            self.owner.encode().ljust(12, b'\x00') if self.owner else b'\x00' * 12,
             self.payload_size
         )
         packed += self.payload.encode()
@@ -222,4 +222,57 @@ class BlockChain:
             print(f'Added item: {evidence_id}\nStatus: CHECKEDIN\nTime of action: {entry.timestamp.iso8601()}')
 
         # Save blockchain to the file
+        self.save_blockchain()
+
+    @blockchain_loader
+    def checkout_item(self, evidence_id: str, password: str):
+        # Password must be correct
+        owner = ''
+        if password == BCHOC_PASSWORD_EXECUTIVE:
+            owner = 'EXECUTIVE'
+        elif password == BCHOC_PASSWORD_LAWYER:
+            owner = 'LAWYER'
+        elif password == BCHOC_PASSWORD_POLICE:
+            owner = 'POLICE'
+        elif password == BCHOC_PASSWORD_ANALYST:
+            owner = 'ANALYST'
+        else:
+            print('Invalid password')
+            exit(1)
+
+
+        # Process all evidence ids and checkout
+        found = False
+        for i in range(len(self.entries) - 1, -1, -1):
+            # Find a block entry with a matching evidence id
+            entry = self.entries[i]
+            if evidence_id != entry.evidence_id:
+                continue
+            
+            if entry.status == BlockStatus.CHECKEDOUT:
+                print(f'Item #{evidence_id} is already checked out!')
+                break
+            if entry.status != BlockStatus.CHECKEDIN:
+                print(f'Item #{evidence_id} cannot be checked out: it is not checked in!')
+                break
+
+            found = True
+            new_entry = BlockEntry()
+            new_entry.hash_value = self.entries[-1].compute_hash()
+            new_entry.timestamp = maya.now()
+            new_entry.case_id = entry.case_id
+            new_entry.evidence_id = evidence_id
+            new_entry.status = BlockStatus.CHECKEDOUT
+            new_entry.author = entry.author
+            new_entry.owner = owner
+            new_entry.payload_size = entry.payload_size
+            new_entry.payload = entry.payload
+            self.entries.append(new_entry)
+            print(f'Case: {new_entry.case_id}\nChecked out item: {evidence_id}\nStatus: CHECKEDOUT\nTime of action: {new_entry.timestamp.iso8601()}')
+                
+
+        if not found:
+            print(f'Item #{evidence_id} was not found!')
+            exit(1)
+
         self.save_blockchain()
