@@ -8,7 +8,7 @@ from blockchain import BlockChain
 
 def main():
     parser = argparse.ArgumentParser(description="Chain of Custody Blockchain")
-    parser.add_argument("command", choices=["init", "add", "checkout", "checkin", "verify", "show"], help="Command to execute")
+    parser.add_argument("command", choices=["init", "add", "checkout", "checkin", "remove", "verify", "show"], help="Command to execute")
     parser.add_argument("-c", "--case_id", help="Case ID")
     parser.add_argument("-i", "--evidence_id", action='append', type=int, help="Evidence ID")
     parser.add_argument("-g", "--author", help="Author/Creator")
@@ -30,15 +30,20 @@ def main():
                 exit(1)
         case "checkout":
             if args.evidence_id and len(args.evidence_id) == 1 and args.password:
-                blockchain.checkout_item(args.evidence_id[0], args.password)
+                blockchain.checkout_entry(args.evidence_id[0], args.password)
             else:
                 print("Error: Wrong arguments for 'checkout' command.")
                 exit(2)
         case "checkin":
             if args.evidence_id and len(args.evidence_id) == 1 and args.password:
-                blockchain.checkin_item(args.evidence_id[0], args.password)
+                blockchain.checkin_entry(args.evidence_id[0], args.password)
             else:
                 print("Error: Wrong arguments for 'checkin' command.")
+        case "remove":
+            if args.evidence_id and len(args.evidence_id) == 1 and args.why and args.password:
+                blockchain.remove_entry(args.evidence_id[0], args.why, args.password)
+            else:
+                print("Error: Wrong arguments for 'remove' command.")
         case "verify":
             valid, message = blockchain.verify_chain()
             print(message)

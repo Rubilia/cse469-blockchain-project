@@ -184,7 +184,7 @@ class BlockChain:
     @blockchain_loader
     def add_entry(self, case_id: str, evidence_ids: List[str], author: str, password: str):
         if password != BCHOC_PASSWORD_CREATOR:
-            print('Invalid password')
+            print('Wrong password')
             exit(1)
 
         # Detect duplicates
@@ -225,7 +225,7 @@ class BlockChain:
         self.save_blockchain()
 
     @blockchain_loader
-    def checkout_item(self, evidence_id: str, password: str):
+    def checkout_entry(self, evidence_id: str, password: str):
         # Password must be correct
         owner = ''
         if password == BCHOC_PASSWORD_EXECUTIVE:
@@ -237,7 +237,7 @@ class BlockChain:
         elif password == BCHOC_PASSWORD_ANALYST:
             owner = 'ANALYST'
         else:
-            print('Invalid password')
+            print('Wrong password')
             exit(1)
 
         # Process all evidence ids and checkout
@@ -268,6 +268,7 @@ class BlockChain:
             new_entry.payload = entry.payload
             self.entries.append(new_entry)
             print(f'Case: {new_entry.case_id}\nChecked out item: {evidence_id}\nStatus: CHECKEDOUT\nTime of action: {new_entry.timestamp.iso8601()}')
+            break
                 
 
         if not found:
@@ -277,7 +278,7 @@ class BlockChain:
         self.save_blockchain()
 
     @blockchain_loader
-    def checkin_item(self, evidence_id: str, password: str):
+    def checkin_entry(self, evidence_id: str, password: str):
         # Password must be correct
         owner = ''
         if password == BCHOC_PASSWORD_EXECUTIVE:
@@ -289,7 +290,7 @@ class BlockChain:
         elif password == BCHOC_PASSWORD_ANALYST:
             owner = 'ANALYST'
         else:
-            print('Invalid password')
+            print('Wrong password')
             exit(1)
 
         found = False
@@ -319,6 +320,7 @@ class BlockChain:
             new_entry.payload = entry.payload
             self.entries.append(new_entry)
             print(f'Case: {new_entry.case_id}\nChecked in item: {evidence_id}\nStatus: CHECKEDIN\nTime of action: {new_entry.timestamp.iso8601()}')
+            break
 
 
         if not found:
@@ -326,3 +328,46 @@ class BlockChain:
             exit(1)
 
         self.save_blockchain()
+
+    @blockchain_loader
+    def remove_entry(self, evidence_id: str, why: str, password: str):
+        if why != 'DISPOSED' and why != 'DESTROYED' and why != 'RELEASED':
+            print('Invalid why')
+            exit(1)
+
+        if password != BCHOC_PASSWORD_CREATOR:
+            print('Wrong password')
+            exit(1)
+
+        found = False
+        for i in range(len(self.entries) - 1, -1, -1):
+            # Find a block entry with a matching evidence id
+            entry = self.entries[i]
+            if evidence_id != entry.evidence_id:
+                continue
+            
+            if entry.status != BlockStatus.CHECKEDIN:
+                print(f'Item #{evidence_id} cannot be removed: it is not checked in!')
+                break
+
+            found = True
+            new_entry = BlockEntry()
+            new_entry.hash_value = self.entries[-1].compute_hash()
+            new_entry.timestamp = maya.now()
+            new_entry.case_id = entry.case_id
+            new_entry.evidence_id = evidence_id
+            new_entry.status = BlockStatus(why)
+            new_entry.author = entry.author
+            new_entry.owner = entry.owner
+            new_entry.payload_size = 0
+            new_entry.payload = ''
+            self.entries.append(new_entry)
+            print(f'Removed item: {new_entry.evidence_id}\nStatus: {why}\nTime of action: {new_entry.timestamp.iso8601()}')
+            break
+
+        if not found:
+            print(f'Item #{evidence_id} was not found!')
+            exit(1)
+
+        self.save_blockchain()
+
