@@ -15,6 +15,9 @@ def main():
     parser.add_argument("-g", "--author", help="Author/Creator")
     parser.add_argument("-p", "--password", help="Password")
     parser.add_argument("-y", "--why", help="Password")
+    parser.add_argument('-n', '--num_entries', type=int, help="Number of entries to show")
+    parser.add_argument('-r', '--reverse', action='store_true', help="Reverse the order of entries")
+
     args = parser.parse_args()
 
     file_path = os.getenv("BCHOC_FILE_PATH", "blockchain.dat")
@@ -25,8 +28,10 @@ def main():
             return blockchain.show_items(args.case_id)
         elif args.subcommand == "cases":
             return blockchain.show_cases()
+        elif args.subcommand == "history" and (not args.evidence_id or len(args.evidence_id) == 1):
+            return blockchain.show_history(args.case_id, args.evidence_id[0] if args.evidence_id else args.evidence_id, args.num_entries, args.reverse, args.password)
         else:
-            print("Error: 'show' command requires 'items' or 'cases' as subcommand.")
+            print("Error: 'show' command requires 'items', 'cases' or 'history' as subcommand.")
             exit(1)
 
     match args.command:

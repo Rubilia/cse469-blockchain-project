@@ -433,3 +433,41 @@ class BlockChain:
                 print(item)
         else:
             print("No items found for this case")
+
+    @blockchain_loader
+    def show_history(self, case_id: str, evidence_id: str, n: int, reverse: bool, password: str):
+        # Password must be correct
+        if password and password != BCHOC_PASSWORD_EXECUTIVE and password != BCHOC_PASSWORD_LAWYER and password != BCHOC_PASSWORD_POLICE and password != BCHOC_PASSWORD_ANALYST:
+            print('Wrong password')
+            exit(1)
+
+        if case_id:
+            entry_history = [e for e in self.entries if str(e.case_id) == case_id]
+        elif evidence_id: 
+            entry_history = [e for e in self.entries if e.evidence_id == int(evidence_id)]
+        else:
+            entry_history = self.entries
+
+        if n:
+            entry_history = entry_history[:n]
+
+        if reverse:
+            entry_history.reverse()
+
+        printed = False
+        for e in entry_history:
+            if password:
+                case_id = e.case_id or "00000000-0000-0000-0000-000000000000"
+                if not e.timestamp:
+                    e.timestamp = entry_history[1].timestamp
+                timestamp = e.timestamp.datetime().isoformat(timespec='microseconds').replace("+00:00", "") + "Z"
+            else:
+                case_id = "00000000-0000-0000-0000-000000000000" if not e.case_id else e._encrypt(e.case_id.bytes, pad=False).hex()
+                if not e.timestamp:
+                    e.timestamp = entry_history[1].timestamp
+
+                timestamp = e.timestamp.datetime().isoformat(timespec='microseconds').replace("+00:00", "") + "Z"
+
+            print('\n' * printed + f"Case: {case_id}\nItem: {e.evidence_id}\nAction: {e.status.name}\nTime: {timestamp}")
+            printed = True
+
