@@ -9,6 +9,7 @@ from blockchain import BlockChain
 def main():
     parser = argparse.ArgumentParser(description="Chain of Custody Blockchain")
     parser.add_argument("command", choices=["init", "add", "checkout", "checkin", "remove", "verify", "show"], help="Command to execute")
+    parser.add_argument("subcommand", nargs='?', help="Subcommand for 'show' command")
     parser.add_argument("-c", "--case_id", help="Case ID")
     parser.add_argument("-i", "--evidence_id", action='append', type=int, help="Evidence ID")
     parser.add_argument("-g", "--author", help="Author/Creator")
@@ -18,6 +19,15 @@ def main():
 
     file_path = os.getenv("BCHOC_FILE_PATH", "blockchain.dat")
     blockchain = BlockChain(file_path)
+
+    if args.command == "show":
+        if args.subcommand == "items":
+            return blockchain.show_items(args.case_id)
+        elif args.subcommand == "cases":
+            return blockchain.show_cases()
+        else:
+            print("Error: 'show' command requires 'items' or 'cases' as subcommand.")
+            exit(1)
 
     match args.command:
         case"init":

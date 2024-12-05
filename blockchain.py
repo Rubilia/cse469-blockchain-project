@@ -414,3 +414,22 @@ class BlockChain:
         
         # Report correct blockchain
         print(f"Transactions in blockchain: {len(self.entries)}\nState of blockchain: CLEAN")
+
+    @blockchain_loader
+    def show_cases(self):
+        cases_set = {entry.case_id for entry in self.entries if entry.case_id and entry.case_id != "None"}
+        
+        if cases_set:
+            for case in sorted(cases_set, reverse=True):
+                print(case)
+        else:
+            print("No cases found in the blockchain.")
+
+    @blockchain_loader
+    def show_items(self, case_id):
+        items = {entry.evidence_id for entry in self.entries if str(entry.case_id) == case_id}
+        if items:
+            for item in sorted(items, reverse=True):
+                print(item)
+        else:
+            print("No items found for this case")
