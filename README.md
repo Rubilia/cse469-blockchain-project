@@ -8,7 +8,7 @@ make
 ```
 ## Initialize the Blockchain:
 Initialization (init): 
-Creates a new blockchain file if none exists and adds a "Genesis block" to start the chain. If a blockchain file already exists, it confirms that the Genesis block is present
+Creates a new blockchain file if none exists and adds a "Genesis block" to start the chain. If a blockchain file already exists, it confirms that the Genesis block is present.
 ```bash
 ./bchoc init
 ```
