@@ -1,6 +1,5 @@
 # CSE469-Group Project: Blockchain Chain of Custody
-Group 22: Ilia Rubashkin 1222860600,  Ian Mello 1213986903 , Brenen Krock 1217521461, Jeffrey Sellers 1222044408
-
+Group 22:
 ## Build the Program
 This copies the main.py to bchoc and makes it executable.
 ```bash
